@@ -84,7 +84,7 @@ export const PDF_TOOLS: PdfTool[] = [
   {
     slug: "pdf-to-word",
     title: "PDF to Word",
-    description: "Generate DOCX with page images and optional OCR text.",
+    description: "Generate DOCX with page images and optional extracted text.",
     iconLabel: "W",
     accentClassName: "bg-sky-500/20 text-sky-300",
     apiPath: "/api/pdf-to-word",
@@ -95,7 +95,7 @@ export const PDF_TOOLS: PdfTool[] = [
   {
     slug: "pdf-to-powerpoint",
     title: "PDF to PowerPoint",
-    description: "Create PPTX with one slide per PDF page image.",
+    description: "Create PPTX with one slide per PDF page image and optional notes text.",
     iconLabel: "P",
     accentClassName: "bg-amber-500/20 text-amber-300",
     apiPath: "/api/pdf-to-powerpoint",
@@ -106,7 +106,7 @@ export const PDF_TOOLS: PdfTool[] = [
   {
     slug: "pdf-to-excel",
     title: "PDF to Excel",
-    description: "Create XLSX sheets from page OCR text.",
+    description: "Create XLSX sheets from text layer, with optional OCR fallback.",
     iconLabel: "X",
     accentClassName: "bg-emerald-500/20 text-emerald-300",
     apiPath: "/api/pdf-to-excel",
@@ -211,7 +211,7 @@ export const PDF_TOOLS: PdfTool[] = [
   {
     slug: "html-to-pdf",
     title: "HTML to PDF",
-    description: "Convert a URL or raw HTML to PDF via Playwright.",
+    description: "Convert a URL or raw HTML to PDF via Playwright (resource-safe mode).",
     iconLabel: "H",
     accentClassName: "bg-yellow-500/20 text-yellow-300",
     apiPath: "/api/html-to-pdf",

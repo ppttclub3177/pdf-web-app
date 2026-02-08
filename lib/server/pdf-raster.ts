@@ -17,23 +17,38 @@ export async function rasterizePdfToImages(
 ): Promise<string[]> {
   const dpi = options?.dpi ?? 150;
   const format = options?.format ?? "jpg";
-  const outputPrefix = path.join(outputDir, "page");
+  const outputBaseName =
+    options?.singleFile && options.firstPage
+      ? `page-${options.firstPage}`
+      : "page";
+  const outputPrefix = path.join(outputDir, outputBaseName);
   const formatFlag = format === "jpg" ? "-jpeg" : "-png";
-  const args = ["-r", String(dpi), formatFlag, pdfPath, outputPrefix];
+  const args: string[] = [];
   if (options?.firstPage) {
-    args.unshift("-f", String(options.firstPage));
+    args.push("-f", String(options.firstPage));
   }
   if (options?.lastPage) {
-    args.unshift("-l", String(options.lastPage));
+    args.push("-l", String(options.lastPage));
   }
   if (options?.singleFile) {
-    args.unshift("-singlefile");
+    args.push("-singlefile");
   }
+  args.push("-r", String(dpi), formatFlag, pdfPath, outputPrefix);
 
   await runCommand("pdftoppm", args);
 
-  const entries = await fs.readdir(outputDir);
   const extension = format === "jpg" ? ".jpg" : ".png";
+  if (options?.singleFile) {
+    const filePath = path.join(outputDir, `${outputBaseName}${extension}`);
+    try {
+      await fs.access(filePath);
+      return [filePath];
+    } catch {
+      return [];
+    }
+  }
+
+  const entries = await fs.readdir(outputDir);
   return entries
     .filter((entry) => entry.startsWith("page-") && entry.endsWith(extension))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))

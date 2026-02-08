@@ -18,6 +18,10 @@ async function runLibreOfficeConvert(
     try {
       await runCommand(command, [
         "--headless",
+        "--norestore",
+        "--nolockcheck",
+        "--nodefault",
+        "--nofirststartwizard",
         "--convert-to",
         "pdf",
         "--outdir",

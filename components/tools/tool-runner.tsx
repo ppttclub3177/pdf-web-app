@@ -102,19 +102,83 @@ function useLimits(): Limits {
 }
 
 function useToolRequest(tool: PdfTool) {
+  type JobStatus = {
+    status: "queued" | "running" | "done" | "error";
+    progress?: number;
+    message?: string;
+    downloadUrl?: string;
+  };
+
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const submit = async (formData: FormData, outputName?: string) => {
     setIsProcessing(true);
+    setProgress("Queued...");
     setError(null);
     setSuccess(null);
 
     try {
-      const response = await fetch(tool.apiPath, {
+      const createResponse = await fetch(`/api/jobs/${tool.slug}`, {
         method: "POST",
         body: formData,
+      });
+      if (!createResponse.ok) {
+        throw new Error(await parseError(createResponse));
+      }
+
+      const created = (await createResponse.json()) as { jobId?: string };
+      const jobId = created.jobId;
+      if (!jobId) {
+        throw new Error("Job creation failed: missing jobId.");
+      }
+
+      const pollStartedAt = Date.now();
+      let status: JobStatus | null = null;
+
+      while (Date.now() - pollStartedAt < 10 * 60 * 1000) {
+        const statusResponse = await fetch(`/api/jobs/${jobId}`, {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!statusResponse.ok) {
+          throw new Error(await parseError(statusResponse));
+        }
+
+        status = (await statusResponse.json()) as JobStatus;
+        const statusText =
+          status?.message ||
+          (status?.status === "queued"
+            ? "Queued..."
+            : status?.status === "running"
+              ? "Running..."
+              : "");
+        const progressText =
+          typeof status?.progress === "number" ? ` (${status.progress}%)` : "";
+        if (statusText) {
+          setProgress(`${statusText}${progressText}`);
+        }
+
+        if (status?.status === "done") {
+          break;
+        }
+        if (status?.status === "error") {
+          throw new Error(status.message || "Job failed.");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+
+      if (!status || status.status !== "done") {
+        throw new Error("Job did not finish within 10 minutes.");
+      }
+
+      const downloadUrl = status.downloadUrl || `/api/jobs/${jobId}/download`;
+      const response = await fetch(downloadUrl, {
+        method: "GET",
+        cache: "no-store",
       });
       if (!response.ok) {
         throw new Error(await parseError(response));
@@ -124,14 +188,16 @@ function useToolRequest(tool: PdfTool) {
       const filename = outputName || `${tool.slug}.${tool.outputExtension}`;
       downloadBlob(blob, filename);
       setSuccess(`Done. Downloaded ${filename}.`);
+      setProgress(null);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Request failed.");
+      setProgress(null);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  return { submit, isProcessing, error, success, setError };
+  return { submit, isProcessing, progress, error, success, setError };
 }
 
 function ToolFormShell({
@@ -163,10 +229,12 @@ function ToolFormShell({
 
 function Status({
   isProcessing,
+  progress,
   error,
   success,
 }: {
   isProcessing: boolean;
+  progress: string | null;
   error: string | null;
   success: string | null;
 }) {
@@ -174,7 +242,7 @@ function Status({
     <div className="space-y-2">
       {isProcessing ? (
         <p className="rounded-lg border border-blue-900/40 bg-blue-950/30 px-3 py-2 text-sm text-blue-200">
-          Processing...
+          {progress || "Processing..."}
         </p>
       ) : null}
       {error ? (
@@ -193,7 +261,7 @@ function Status({
 
 function MergeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -219,7 +287,7 @@ function MergeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
         files={files}
         onFilesChange={setFiles}
       />
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -234,7 +302,7 @@ function MergeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
 function SplitForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [ranges, setRanges] = useState("");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -275,7 +343,7 @@ function SplitForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           className="w-full rounded-lg border border-zinc-700 bg-[#0a111c] px-3 py-2 text-sm text-zinc-100"
         />
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -291,7 +359,7 @@ function RotateForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [angle, setAngle] = useState("90");
   const [pages, setPages] = useState("all");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -348,7 +416,7 @@ function RotateForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           />
         </div>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -368,7 +436,7 @@ function WatermarkForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [scale, setScale] = useState("0.35");
   const [position, setPosition] = useState("center");
   const [pages, setPages] = useState("all");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -494,7 +562,7 @@ function WatermarkForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           </select>
         </div>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -513,7 +581,7 @@ function SignForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [xPercent, setXPercent] = useState("50");
   const [yPercent, setYPercent] = useState("18");
   const [widthPercent, setWidthPercent] = useState("24");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onPickerClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -617,7 +685,7 @@ function SignForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           />
         </div>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -641,7 +709,7 @@ function EditForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [highlightWidth, setHighlightWidth] = useState("40");
   const [highlightHeight, setHighlightHeight] = useState("8");
   const [highlightColor, setHighlightColor] = useState("yellow");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -772,7 +840,7 @@ function EditForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           <option value="blue">blue</option>
         </select>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -788,7 +856,7 @@ function ImageToPdfForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [orientation, setOrientation] = useState("portrait");
   const [margin, setMargin] = useState("24");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -837,7 +905,7 @@ function ImageToPdfForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           />
         </div>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -852,7 +920,7 @@ function ImageToPdfForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
 function PdfToJpgForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [dpi, setDpi] = useState("150");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -890,7 +958,7 @@ function PdfToJpgForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           <option value="300">300</option>
         </select>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -906,7 +974,7 @@ function HtmlToPdfForm({ tool }: { tool: PdfTool }) {
   const [mode, setMode] = useState("url");
   const [url, setUrl] = useState("");
   const [html, setHtml] = useState("<h1>Hello PDF</h1><p>Generated from HTML.</p>");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -960,7 +1028,7 @@ function HtmlToPdfForm({ tool }: { tool: PdfTool }) {
           />
         </div>
       )}
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -975,7 +1043,7 @@ function HtmlToPdfForm({ tool }: { tool: PdfTool }) {
 function CompressForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [quality, setQuality] = useState("ebook");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -1014,7 +1082,7 @@ function CompressForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           <option value="printer">printer</option>
         </select>
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -1036,7 +1104,7 @@ function OfficeToPdfForm({
   extensions: string[];
 }) {
   const [files, setFiles] = useState<File[]>([]);
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -1062,7 +1130,7 @@ function OfficeToPdfForm({
         files={files}
         onFilesChange={setFiles}
       />
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -1077,7 +1145,7 @@ function OfficeToPdfForm({
 function PdfToOfficeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [includeOcr, setIncludeOcr] = useState(false);
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -1118,7 +1186,7 @@ function PdfToOfficeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           OCR is slower and can time out on small-memory servers. Keep it off unless needed.
         </p>
       ) : null}
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -1133,7 +1201,7 @@ function PdfToOfficeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
 function PasswordPdfForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
   const [password, setPassword] = useState("");
-  const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
+  const { submit, isProcessing, progress, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -1174,7 +1242,7 @@ function PasswordPdfForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
           className="w-full rounded-lg border border-zinc-700 bg-[#0a111c] px-3 py-2 text-sm text-zinc-100"
         />
       </div>
-      <Status isProcessing={isProcessing} error={error} success={success} />
+      <Status isProcessing={isProcessing} progress={progress} error={error} success={success} />
       <button
         type="submit"
         disabled={isProcessing}
@@ -1269,3 +1337,4 @@ export function ToolRunner({ tool }: { tool: PdfTool }) {
     </div>
   );
 }
+

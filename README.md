@@ -77,23 +77,38 @@ LIBREOFFICE_CMD=C:\Program Files\LibreOffice\program\soffice.exe
 Set in `.env.local` (or compose env):
 
 ```env
-MAX_FILES=20
-MAX_FILE_MB=100
-MAX_PAGES=500
-MAX_TOTAL_MB=300
-REQUEST_TIMEOUT_SEC=120
-MAX_HTML_FETCH_MB=15
+MAX_FILES=5
+MAX_FILE_MB=25
+MAX_PAGES=50
+MAX_TOTAL_MB=50
+REQUEST_TIMEOUT_SEC=600
+MAX_HTML_FETCH_MB=1
+HTML_TO_PDF_MAX_KB=300
 TMP_DIR=data/tmp
-TMP_TTL_MINUTES=20
+TMP_TTL_MINUTES=15
 ENABLE_OCR=1
-OCR_MAX_PAGES=12
-OCR_DPI=110
+OCR_MAX_PAGES=10
+OCR_DPI=150
+JOB_TIMEOUT_MINUTES=10
+JOB_RETENTION_MINUTES=15
+OFFICE_MAX_FILE_MB=10
+OFFICE_MAX_PAGES=30
 LIBREOFFICE_CMD=
 ```
 
 UI applies these limits early, API enforces them server-side.
 
 These are safety limits only, not usage limits. Visitors can use tools unlimited times.
+
+## Async Job API
+
+All long-running tools use async jobs (no long blocking HTTP request):
+
+- `POST /api/jobs/:tool` -> `202 { jobId }`
+- `GET /api/jobs/:jobId` -> `{ status: queued|running|done|error, progress, message, downloadUrl? }`
+- `GET /api/jobs/:jobId/download` -> streams output file after `done`
+
+Queue concurrency is `1` by default for Render Free stability. Job temp files are stored under `/tmp/pdf-web-app-jobs` and auto-cleaned after retention.
 
 ## Dev Test Assets & Smoke Tests
 
@@ -107,6 +122,12 @@ Run smoke tests:
 
 ```bash
 npm run test:smoke
+```
+
+Run async job smoke tests against all tools:
+
+```bash
+npm run test:smoke:jobs
 ```
 
 For strict full-mode verification, run in Docker and set:
@@ -129,24 +150,24 @@ Smoke tests cover:
 
 | Tool | Route | API | Output | Implementation | Dependencies |
 |---|---|---|---|---|---|
-| Merge PDF | `/tools/merge-pdf` | `/api/merge-pdf` | PDF | `pdf-lib` copyPages | `pdf-lib` |
-| Split PDF | `/tools/split-pdf` | `/api/split-pdf` | ZIP | per-page or range groups | `pdf-lib`, `jszip` |
-| Rotate PDF | `/tools/rotate-pdf` | `/api/rotate-pdf` | PDF | rotate all/selected pages | `pdf-lib` |
-| Watermark | `/tools/watermark` | `/api/watermark` | PDF | text/image watermark, opacity/position/scale/pages | `pdf-lib` |
-| Sign PDF | `/tools/sign-pdf` | `/api/sign` | PDF | signature image insertion with coordinate picker | `pdf-lib` |
-| Edit PDF | `/tools/edit-pdf` | `/api/edit` | PDF | add text + highlight rectangle | `pdf-lib` |
-| JPG/PNG to PDF | `/tools/jpg-to-pdf` | `/api/jpg-to-pdf` | PDF | multi-image fit to A4 portrait/landscape + margin | `pdf-lib` |
-| PDF to JPG | `/tools/pdf-to-jpg` | `/api/pdf-to-jpg` | JPG/ZIP | rasterize each page | `pdftoppm` |
-| HTML to PDF | `/tools/html-to-pdf` | `/api/html-to-pdf` | PDF | URL or raw HTML render | `playwright` Chromium |
-| Compress PDF | `/tools/compress-pdf` | `/api/compress` | PDF | quality profiles | `ghostscript` |
-| Word to PDF | `/tools/word-to-pdf` | `/api/word-to-pdf` | PDF | headless office convert | `libreoffice` |
-| PowerPoint to PDF | `/tools/powerpoint-to-pdf` | `/api/powerpoint-to-pdf` | PDF | headless office convert | `libreoffice` |
-| Excel to PDF | `/tools/excel-to-pdf` | `/api/excel-to-pdf` | PDF | headless office convert | `libreoffice` |
-| PDF to Word | `/tools/pdf-to-word` | `/api/pdf-to-word` | DOCX | one page image per section + optional OCR text | `pdftoppm`, `docx`, `tesseract`(optional) |
-| PDF to PowerPoint | `/tools/pdf-to-powerpoint` | `/api/pdf-to-powerpoint` | PPTX | one page image per slide + optional OCR text | `pdftoppm`, `pptxgenjs`, `tesseract`(optional) |
-| PDF to Excel | `/tools/pdf-to-excel` | `/api/pdf-to-excel` | XLSX | OCR lines per page sheet | `pdftoppm`, `exceljs`, `tesseract`(optional) |
-| Protect PDF | `/tools/protect-pdf` | `/api/protect-pdf` | PDF | encrypt with user password | `qpdf` |
-| Unlock PDF | `/tools/unlock-pdf` | `/api/unlock-pdf` | PDF | decrypt only with provided password | `qpdf` |
+| Merge PDF | `/tools/merge-pdf` | `POST /api/jobs/merge-pdf` | PDF | `pdf-lib` copyPages | `pdf-lib` |
+| Split PDF | `/tools/split-pdf` | `POST /api/jobs/split-pdf` | ZIP | page-range split + zip | `pdf-lib`, `archiver` |
+| Rotate PDF | `/tools/rotate-pdf` | `POST /api/jobs/rotate-pdf` | PDF | rotate all/selected pages | `pdf-lib` |
+| Watermark | `/tools/watermark` | `POST /api/jobs/watermark` | PDF | text/image watermark | `pdf-lib` |
+| Sign PDF | `/tools/sign-pdf` | `POST /api/jobs/sign-pdf` | PDF | signature image insertion | `pdf-lib` |
+| Edit PDF | `/tools/edit-pdf` | `POST /api/jobs/edit-pdf` | PDF | add text + highlight rectangle | `pdf-lib` |
+| JPG/PNG to PDF | `/tools/jpg-to-pdf` | `POST /api/jobs/jpg-to-pdf` | PDF | multi-image to PDF | `pdf-lib` |
+| PDF to JPG | `/tools/pdf-to-jpg` | `POST /api/jobs/pdf-to-jpg` | JPG/ZIP | rasterize each page | `pdftoppm`, `archiver` |
+| HTML to PDF | `/tools/html-to-pdf` | `POST /api/jobs/html-to-pdf` | PDF | URL or raw HTML render | `playwright` Chromium |
+| Compress PDF | `/tools/compress-pdf` | `POST /api/jobs/compress-pdf` | PDF | Ghostscript quality profiles | `ghostscript` |
+| Word to PDF | `/tools/word-to-pdf` | `POST /api/jobs/word-to-pdf` | PDF | headless office convert | `libreoffice` |
+| PowerPoint to PDF | `/tools/powerpoint-to-pdf` | `POST /api/jobs/powerpoint-to-pdf` | PDF | headless office convert | `libreoffice` |
+| Excel to PDF | `/tools/excel-to-pdf` | `POST /api/jobs/excel-to-pdf` | PDF | headless office convert | `libreoffice` |
+| PDF to Word | `/tools/pdf-to-word` | `POST /api/jobs/pdf-to-word` | DOCX | one page image per section + extracted text | `pdftoppm`, `docx`, `tesseract`(optional) |
+| PDF to PowerPoint | `/tools/pdf-to-powerpoint` | `POST /api/jobs/pdf-to-powerpoint` | PPTX | one page image per slide + notes text | `pdftoppm`, `pptxgenjs`, `tesseract`(optional) |
+| PDF to Excel | `/tools/pdf-to-excel` | `POST /api/jobs/pdf-to-excel` | XLSX | text-layer first, OCR fallback | `pdftoppm`, `exceljs`, `tesseract`(optional) |
+| Protect PDF | `/tools/protect-pdf` | `POST /api/jobs/protect-pdf` | PDF | encrypt with user password | `qpdf` |
+| Unlock PDF | `/tools/unlock-pdf` | `POST /api/jobs/unlock-pdf` | PDF | decrypt with provided password | `qpdf` |
 
 ## Security Notes
 
@@ -169,21 +190,29 @@ Smoke tests cover:
 5. Set environment variables in Render dashboard:
    - `NEXT_PUBLIC_SITE_URL=https://your-domain.com`
    - `NEXT_PUBLIC_SITE_NAME=YourBrand`
-   - `MAX_FILES=20`
-   - `MAX_FILE_MB=100`
-   - `MAX_TOTAL_MB=300`
-   - `MAX_PAGES=500`
-   - `REQUEST_TIMEOUT_SEC=120`
-   - `MAX_HTML_FETCH_MB=15`
+   - `MAX_FILES=5`
+   - `MAX_FILE_MB=25`
+   - `MAX_TOTAL_MB=50`
+   - `MAX_PAGES=50`
+   - `REQUEST_TIMEOUT_SEC=600`
+   - `MAX_HTML_FETCH_MB=1`
+   - `HTML_TO_PDF_MAX_KB=300`
    - `TMP_DIR=data/tmp`
-   - `TMP_TTL_MINUTES=20`
+   - `TMP_TTL_MINUTES=15`
    - `ENABLE_OCR=1`
-   - `OCR_MAX_PAGES=12`
-   - `OCR_DPI=110`
+   - `OCR_MAX_PAGES=10`
+   - `OCR_DPI=150`
+   - `JOB_TIMEOUT_MINUTES=10`
+   - `JOB_RETENTION_MINUTES=15`
+   - `OFFICE_MAX_FILE_MB=10`
+   - `OFFICE_MAX_PAGES=30`
+   - `NODE_OPTIONS=--max-old-space-size=256`
+   - `NEXT_TELEMETRY_DISABLED=1`
 6. Deploy service and confirm app opens over HTTPS on Render domain.
 7. Add your custom domain in Render and enable HTTPS.
 8. Update DNS records at your domain provider as instructed by Render.
 9. After DNS/SSL are active, verify:
+   - `https://your-domain.com/healthz`
    - `https://your-domain.com/robots.txt`
    - `https://your-domain.com/sitemap.xml`
 
@@ -215,4 +244,5 @@ Smoke tests cover:
 - `npm run lint`
 - `npm run test:assets`
 - `npm run test:smoke`
+- `npm run test:smoke:jobs`
 - `npm run cleanup:tmp`

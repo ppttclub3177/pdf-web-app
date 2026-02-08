@@ -3,6 +3,8 @@ FROM node:20-bookworm
 WORKDIR /app
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=256
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates \

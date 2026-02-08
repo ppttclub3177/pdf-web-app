@@ -1,7 +1,6 @@
 import {
   MAX_HTML_FETCH_BYTES,
   REQUEST_TIMEOUT_MS,
-  REQUEST_TIMEOUT_SEC,
 } from "@/lib/config";
 import { ApiError } from "@/lib/server/api";
 import { assertSafeHttpUrl } from "@/lib/server/net-guard";
@@ -20,9 +19,12 @@ function getRedirectUrl(location: string, currentUrl: URL): URL {
   }
 }
 
-async function fetchWithTimeout(url: URL): Promise<Response> {
+async function fetchWithTimeout(
+  url: URL,
+  timeoutMs: number,
+): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url.toString(), {
       method: "GET",
@@ -34,8 +36,9 @@ async function fetchWithTimeout(url: URL): Promise<Response> {
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
+      const timeoutSec = Math.max(1, Math.floor(timeoutMs / 1000));
       throw new ApiError(
-        `URL fetch timed out after ${REQUEST_TIMEOUT_SEC} seconds.`,
+        `URL fetch timed out after ${timeoutSec} seconds.`,
         408,
       );
     }
@@ -45,14 +48,17 @@ async function fetchWithTimeout(url: URL): Promise<Response> {
   }
 }
 
-async function readBodyWithSizeLimit(response: Response): Promise<string> {
+async function readBodyWithSizeLimit(
+  response: Response,
+  maxBytes: number,
+): Promise<string> {
   const contentLengthHeader = response.headers.get("content-length");
   if (contentLengthHeader) {
     const declared = Number.parseInt(contentLengthHeader, 10);
-    if (Number.isFinite(declared) && declared > MAX_HTML_FETCH_BYTES) {
+    if (Number.isFinite(declared) && declared > maxBytes) {
       throw new ApiError(
         `Target HTML is too large. Max is ${Math.floor(
-          MAX_HTML_FETCH_BYTES / (1024 * 1024),
+          maxBytes / (1024 * 1024),
         )}MB.`,
         413,
       );
@@ -75,10 +81,10 @@ async function readBodyWithSizeLimit(response: Response): Promise<string> {
       continue;
     }
     total += value.length;
-    if (total > MAX_HTML_FETCH_BYTES) {
+    if (total > maxBytes) {
       throw new ApiError(
         `Target HTML exceeded max size ${Math.floor(
-          MAX_HTML_FETCH_BYTES / (1024 * 1024),
+          maxBytes / (1024 * 1024),
         )}MB.`,
         413,
       );
@@ -100,10 +106,28 @@ export async function fetchSafeHtml(inputUrl: string): Promise<{
   html: string;
   finalUrl: URL;
 }> {
+  return fetchSafeHtmlWithOptions(inputUrl, {
+    maxBytes: MAX_HTML_FETCH_BYTES,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  });
+}
+
+export async function fetchSafeHtmlWithOptions(
+  inputUrl: string,
+  options?: {
+    maxBytes?: number;
+    timeoutMs?: number;
+  },
+): Promise<{
+  html: string;
+  finalUrl: URL;
+}> {
+  const maxBytes = options?.maxBytes ?? MAX_HTML_FETCH_BYTES;
+  const timeoutMs = options?.timeoutMs ?? REQUEST_TIMEOUT_MS;
   let currentUrl = await assertSafeHttpUrl(inputUrl);
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
-    const response = await fetchWithTimeout(currentUrl);
+    const response = await fetchWithTimeout(currentUrl, timeoutMs);
     if (isRedirectStatus(response.status)) {
       const location = response.headers.get("location");
       if (!location) {
@@ -129,7 +153,7 @@ export async function fetchSafeHtml(inputUrl: string): Promise<{
       throw new ApiError("URL did not return HTML content.", 400);
     }
 
-    const html = await readBodyWithSizeLimit(response);
+    const html = await readBodyWithSizeLimit(response, maxBytes);
     return { html, finalUrl: currentUrl };
   }
 

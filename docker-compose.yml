@@ -7,16 +7,23 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
+      NEXT_TELEMETRY_DISABLED: 1
+      NODE_OPTIONS: --max-old-space-size=256
       NEXT_PUBLIC_SITE_NAME: PDFFlow
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      MAX_FILES: 20
-      MAX_FILE_MB: 100
-      MAX_PAGES: 500
-      MAX_TOTAL_MB: 300
-      REQUEST_TIMEOUT_SEC: 120
-      MAX_HTML_FETCH_MB: 15
+      MAX_FILES: 5
+      MAX_FILE_MB: 25
+      MAX_PAGES: 50
+      MAX_TOTAL_MB: 50
+      REQUEST_TIMEOUT_SEC: 600
+      MAX_HTML_FETCH_MB: 1
+      HTML_TO_PDF_MAX_KB: 300
       TMP_DIR: data/tmp
-      TMP_TTL_MINUTES: 20
+      TMP_TTL_MINUTES: 15
       ENABLE_OCR: 1
-      OCR_MAX_PAGES: 12
-      OCR_DPI: 110
+      OCR_MAX_PAGES: 10
+      OCR_DPI: 150
+      JOB_TIMEOUT_MINUTES: 10
+      JOB_RETENTION_MINUTES: 15
+      OFFICE_MAX_FILE_MB: 10
+      OFFICE_MAX_PAGES: 30

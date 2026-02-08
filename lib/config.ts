@@ -1,12 +1,17 @@
-const DEFAULT_MAX_FILES = 20;
-const DEFAULT_MAX_FILE_MB = 100;
-const DEFAULT_MAX_PAGES = 500;
-const DEFAULT_MAX_TOTAL_MB = 300;
-const DEFAULT_TEMP_TTL_MINUTES = 20;
-const DEFAULT_REQUEST_TIMEOUT_SEC = 120;
-const DEFAULT_MAX_HTML_FETCH_MB = 15;
-const DEFAULT_OCR_MAX_PAGES = 12;
-const DEFAULT_OCR_DPI = 110;
+const DEFAULT_MAX_FILES = 5;
+const DEFAULT_MAX_FILE_MB = 25;
+const DEFAULT_MAX_PAGES = 50;
+const DEFAULT_MAX_TOTAL_MB = 50;
+const DEFAULT_TEMP_TTL_MINUTES = 15;
+const DEFAULT_REQUEST_TIMEOUT_SEC = 600;
+const DEFAULT_MAX_HTML_FETCH_MB = 1;
+const DEFAULT_OCR_MAX_PAGES = 10;
+const DEFAULT_OCR_DPI = 150;
+const DEFAULT_HTML_TO_PDF_MAX_KB = 300;
+const DEFAULT_JOB_TIMEOUT_MINUTES = 10;
+const DEFAULT_JOB_RETENTION_MINUTES = 15;
+const DEFAULT_OFFICE_MAX_FILE_MB = 10;
+const DEFAULT_OFFICE_MAX_PAGES = 30;
 
 function parseEnvInt(name: string, fallback: number): number {
   const rawValue = process.env[name];
@@ -61,6 +66,29 @@ export const OCR_MAX_PAGES = parseEnvInt(
 );
 
 export const OCR_DPI = parseEnvInt("OCR_DPI", DEFAULT_OCR_DPI);
+
+export const HTML_TO_PDF_MAX_BYTES =
+  parseEnvInt("HTML_TO_PDF_MAX_KB", DEFAULT_HTML_TO_PDF_MAX_KB) * 1024;
+
+export const JOB_TIMEOUT_MS =
+  parseEnvInt("JOB_TIMEOUT_MINUTES", DEFAULT_JOB_TIMEOUT_MINUTES) * 60 * 1000;
+
+export const JOB_RETENTION_MS =
+  parseEnvInt("JOB_RETENTION_MINUTES", DEFAULT_JOB_RETENTION_MINUTES) *
+  60 *
+  1000;
+
+export const OFFICE_MAX_FILE_MB = parseEnvInt(
+  "OFFICE_MAX_FILE_MB",
+  DEFAULT_OFFICE_MAX_FILE_MB,
+);
+
+export const OFFICE_MAX_FILE_BYTES = OFFICE_MAX_FILE_MB * 1024 * 1024;
+
+export const OFFICE_MAX_PAGES = parseEnvInt(
+  "OFFICE_MAX_PAGES",
+  DEFAULT_OFFICE_MAX_PAGES,
+);
 
 export const DOCKER_HINT =
   "Missing system dependency. Run in Docker full mode: docker compose up --build";
