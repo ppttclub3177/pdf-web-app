@@ -1,0 +1,36 @@
+{
+  "name": "pdf-web-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test:assets": "node scripts/generate-test-assets.mjs",
+    "test:smoke": "tsx scripts/smoke-tests.ts",
+    "cleanup:tmp": "node scripts/cleanup-temp.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.5.1",
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.1",
+    "next": "16.1.6",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.58.2",
+    "pptxgenjs": "^4.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}
