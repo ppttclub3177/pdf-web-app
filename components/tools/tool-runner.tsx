@@ -1076,7 +1076,7 @@ function OfficeToPdfForm({
 
 function PdfToOfficeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
   const [files, setFiles] = useState<File[]>([]);
-  const [includeOcr, setIncludeOcr] = useState(true);
+  const [includeOcr, setIncludeOcr] = useState(false);
   const { submit, isProcessing, error, success, setError } = useToolRequest(tool);
 
   const onSubmit = async (event: FormEvent) => {
@@ -1113,6 +1113,11 @@ function PdfToOfficeForm({ tool, limits }: { tool: PdfTool; limits: Limits }) {
         />
         Include OCR text when available
       </label>
+      {tool.slug === "pdf-to-excel" ? (
+        <p className="text-xs text-zinc-400">
+          OCR is slower and can time out on small-memory servers. Keep it off unless needed.
+        </p>
+      ) : null}
       <Status isProcessing={isProcessing} error={error} success={success} />
       <button
         type="submit"

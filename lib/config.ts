@@ -5,6 +5,8 @@ const DEFAULT_MAX_TOTAL_MB = 300;
 const DEFAULT_TEMP_TTL_MINUTES = 20;
 const DEFAULT_REQUEST_TIMEOUT_SEC = 120;
 const DEFAULT_MAX_HTML_FETCH_MB = 15;
+const DEFAULT_OCR_MAX_PAGES = 12;
+const DEFAULT_OCR_DPI = 110;
 
 function parseEnvInt(name: string, fallback: number): number {
   const rawValue = process.env[name];
@@ -52,6 +54,13 @@ export const MAX_HTML_FETCH_MB = parseEnvInt(
 );
 
 export const MAX_HTML_FETCH_BYTES = MAX_HTML_FETCH_MB * 1024 * 1024;
+
+export const OCR_MAX_PAGES = parseEnvInt(
+  "OCR_MAX_PAGES",
+  DEFAULT_OCR_MAX_PAGES,
+);
+
+export const OCR_DPI = parseEnvInt("OCR_DPI", DEFAULT_OCR_DPI);
 
 export const DOCKER_HINT =
   "Missing system dependency. Run in Docker full mode: docker compose up --build";

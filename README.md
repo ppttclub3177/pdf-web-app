@@ -86,6 +86,8 @@ MAX_HTML_FETCH_MB=15
 TMP_DIR=data/tmp
 TMP_TTL_MINUTES=20
 ENABLE_OCR=1
+OCR_MAX_PAGES=12
+OCR_DPI=110
 LIBREOFFICE_CMD=
 ```
 
@@ -176,6 +178,8 @@ Smoke tests cover:
    - `TMP_DIR=data/tmp`
    - `TMP_TTL_MINUTES=20`
    - `ENABLE_OCR=1`
+   - `OCR_MAX_PAGES=12`
+   - `OCR_DPI=110`
 6. Deploy service and confirm app opens over HTTPS on Render domain.
 7. Add your custom domain in Render and enable HTTPS.
 8. Update DNS records at your domain provider as instructed by Render.

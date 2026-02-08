@@ -5,6 +5,9 @@ import { runCommand } from "@/lib/server/command";
 type RasterizeOptions = {
   dpi?: number;
   format?: "jpg" | "png";
+  firstPage?: number;
+  lastPage?: number;
+  singleFile?: boolean;
 };
 
 export async function rasterizePdfToImages(
@@ -17,6 +20,15 @@ export async function rasterizePdfToImages(
   const outputPrefix = path.join(outputDir, "page");
   const formatFlag = format === "jpg" ? "-jpeg" : "-png";
   const args = ["-r", String(dpi), formatFlag, pdfPath, outputPrefix];
+  if (options?.firstPage) {
+    args.unshift("-f", String(options.firstPage));
+  }
+  if (options?.lastPage) {
+    args.unshift("-l", String(options.lastPage));
+  }
+  if (options?.singleFile) {
+    args.unshift("-singlefile");
+  }
 
   await runCommand("pdftoppm", args);
 
