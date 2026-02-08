@@ -161,7 +161,10 @@ Smoke tests cover:
 1. Push this repo to GitHub.
 2. In Render, create a new **Web Service** from repo.
 3. Runtime: **Docker** (Render uses your `Dockerfile`).
-4. Set environment variables in Render dashboard:
+4. Use production startup (do not run `next dev` on Render):
+   - Docker runtime: this `Dockerfile` runs `npm run build` and starts with `npm run start`.
+   - Node runtime (alternative): Build command `npm ci && npm run build`, Start command `npm run start`.
+5. Set environment variables in Render dashboard:
    - `NEXT_PUBLIC_SITE_URL=https://your-domain.com`
    - `NEXT_PUBLIC_SITE_NAME=YourBrand`
    - `MAX_FILES=20`
@@ -173,10 +176,10 @@ Smoke tests cover:
    - `TMP_DIR=data/tmp`
    - `TMP_TTL_MINUTES=20`
    - `ENABLE_OCR=1`
-5. Deploy service and confirm app opens over HTTPS on Render domain.
-6. Add your custom domain in Render and enable HTTPS.
-7. Update DNS records at your domain provider as instructed by Render.
-8. After DNS/SSL are active, verify:
+6. Deploy service and confirm app opens over HTTPS on Render domain.
+7. Add your custom domain in Render and enable HTTPS.
+8. Update DNS records at your domain provider as instructed by Render.
+9. After DNS/SSL are active, verify:
    - `https://your-domain.com/robots.txt`
    - `https://your-domain.com/sitemap.xml`
 
@@ -204,6 +207,7 @@ Smoke tests cover:
 
 - `npm run dev`
 - `npm run build`
+- `npm run start`
 - `npm run lint`
 - `npm run test:assets`
 - `npm run test:smoke`
