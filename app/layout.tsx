@@ -63,6 +63,15 @@ export default function RootLayout({
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3">
             <p>{SITE_NAME} - Unlimited PDF tools</p>
             <div className="flex items-center gap-4">
+              <Link className="hover:text-zinc-200" href="/pdf-tools">
+                PDF Tools
+              </Link>
+              <Link className="hover:text-zinc-200" href="/about">
+                About
+              </Link>
+              <Link className="hover:text-zinc-200" href="/contact">
+                Contact
+              </Link>
               <Link className="hover:text-zinc-200" href="/privacy">
                 Privacy
               </Link>

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const DEFAULT_PUBLIC_URL = "https://pdf-web-app-fwwm.onrender.com";
-const STATIC_PATHS = ["/", "/privacy", "/terms"];
+const STATIC_PATHS = ["/", "/pdf-tools", "/about", "/contact", "/privacy", "/terms"];
 
 function trimTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");

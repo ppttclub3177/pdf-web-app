@@ -3,6 +3,8 @@ export const SITE_NAME =
 
 export const SITE_DESCRIPTION =
   "Fast online PDF tools for merge, split, convert, and secure workflows.";
+export const CONTACT_EMAIL =
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "pdf.flow.contact@gmail.com";
 
 const DEFAULT_SITE_URL = "https://pdf-web-app-fwwm.onrender.com";
 

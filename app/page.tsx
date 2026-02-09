@@ -4,9 +4,21 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, getAbsoluteUrl } from "@/lib/sit
 import { PDF_TOOLS, getToolHref } from "@/lib/tools";
 
 export const metadata: Metadata = {
-  title: "Online PDF Tools",
+  title: "Online PDF Tools - Merge, Split, Compress, Convert",
   description:
-    "Unlimited local PDF tool station. Merge, split, compress, convert, protect, unlock, and more.",
+    "Online PDF tools for merge, split, compress, convert, sign, watermark, rotate, unlock, protect, and HTML to PDF.",
+  keywords: [
+    "online pdf tools",
+    "merge pdf online",
+    "split pdf by page range",
+    "compress pdf size",
+    "pdf converter no login",
+    "sign pdf online",
+    "watermark pdf",
+    "unlock pdf",
+    "protect pdf with password",
+    "html to pdf online",
+  ],
   alternates: {
     canonical: "/",
   },
@@ -55,18 +67,27 @@ export default function Home() {
           <Link href="/" className="text-xl font-semibold tracking-tight text-white">
             {SITE_NAME}
           </Link>
-          <p className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300">
-            Unlimited use. No login. No paywall.
-          </p>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/pdf-tools"
+              className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-zinc-500 hover:text-white"
+            >
+              Keyword Hub
+            </Link>
+            <p className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300">
+              Unlimited use. No login. No paywall.
+            </p>
+          </div>
         </header>
 
         <section className="mb-8 rounded-2xl border border-zinc-800 bg-[#0c1522] px-6 py-7">
           <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-            Full PDF Toolkit
+            Online PDF Tools for High-Intent Workflows
           </h1>
           <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-300 sm:text-base">
-            Every card below opens a working tool and returns downloadable files.
-            Heavy converters run best in Docker full mode.
+            Merge PDF online, split PDF by page range, compress PDF for email,
+            convert PDF to Word, PowerPoint, Excel, JPG, and secure files with
+            sign, watermark, unlock, and protect workflows.
           </p>
           <p className="mt-3 text-xs text-zinc-400">
             Configure resource guard in <code>.env</code>: <code>MAX_FILES</code>,{" "}

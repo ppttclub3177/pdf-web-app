@@ -24,8 +24,9 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${tool.title}`,
-    description: `${tool.title} on ${SITE_NAME}. ${tool.description}`,
+    title: tool.seoTitle,
+    description: tool.seoDescription,
+    keywords: [tool.primaryKeyword, ...tool.secondaryKeywords],
     alternates: {
       canonical: getToolHref(tool.slug),
     },
@@ -48,6 +49,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
 
   const previousToolIndex = PDF_TOOLS.findIndex((item) => item.slug === tool.slug);
   const nextTool = PDF_TOOLS[(previousToolIndex + 1) % PDF_TOOLS.length];
+  const relatedTools = PDF_TOOLS.filter((item) => item.slug !== tool.slug).slice(0, 5);
   const toolUrl = getAbsoluteUrl(getToolHref(tool.slug));
 
   const softwareStructuredData = {
@@ -109,13 +111,57 @@ export default async function ToolPage({ params }: ToolPageProps) {
             {tool.iconLabel}
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-            {tool.title}
+            {tool.primaryKeyword}
           </h1>
-          <p className="mt-3 text-sm leading-7 text-zinc-300">{tool.description}</p>
+          <p className="mt-3 text-sm leading-7 text-zinc-300">{tool.intro}</p>
+          <p className="mt-2 text-xs uppercase tracking-wide text-zinc-400">
+            Also searched: {tool.secondaryKeywords.slice(0, 3).join(" • ")}
+          </p>
         </header>
 
         <section className="rounded-2xl border border-zinc-800 bg-[#0c1522] p-6">
           <ToolRunner tool={tool} />
+        </section>
+
+        <section className="rounded-2xl border border-zinc-800 bg-[#0c1522] p-6">
+          <h2 className="text-xl font-semibold text-white">Popular searches</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tool.secondaryKeywords.map((keyword) => (
+              <span
+                key={keyword}
+                className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300"
+              >
+                {keyword}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-800 bg-[#0c1522] p-6">
+          <h2 className="text-xl font-semibold text-white">FAQ</h2>
+          <div className="mt-4 space-y-4">
+            {tool.faq.map((entry) => (
+              <article key={entry.q} className="rounded-lg border border-zinc-800 bg-[#0b121d] p-4">
+                <h3 className="text-sm font-semibold text-zinc-100">{entry.q}</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">{entry.a}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-800 bg-[#0c1522] p-6">
+          <h2 className="text-xl font-semibold text-white">Related tools</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {relatedTools.map((relatedTool) => (
+              <Link
+                key={relatedTool.slug}
+                href={getToolHref(relatedTool.slug)}
+                className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-200 transition hover:border-zinc-500 hover:text-white"
+              >
+                {relatedTool.title}
+              </Link>
+            ))}
+          </div>
         </section>
       </div>
     </main>
