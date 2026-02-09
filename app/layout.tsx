@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${SITE_NAME} | Online PDF Tools`,
     description: SITE_DESCRIPTION,
-    url: SITE_URL,
+    url: "/",
     siteName: SITE_NAME,
     locale: "en_US",
     type: "website",

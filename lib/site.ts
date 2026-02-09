@@ -4,10 +4,32 @@ export const SITE_NAME =
 export const SITE_DESCRIPTION =
   "Fast online PDF tools for merge, split, convert, and secure workflows.";
 
+const DEFAULT_SITE_URL = "https://pdf-web-app-fwwm.onrender.com";
+
+function normalizeSiteUrl(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const normalized = new URL(trimmed);
+    return normalized.toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000";
+  normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
+  normalizeSiteUrl(process.env.RENDER_EXTERNAL_URL) ||
+  DEFAULT_SITE_URL;
 
 export function getAbsoluteUrl(path = "/"): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${SITE_URL.replace(/\/+$/, "")}${normalizedPath}`;
+  return new URL(normalizedPath, `${SITE_URL}/`).toString();
 }
